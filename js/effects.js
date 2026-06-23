@@ -1,5 +1,6 @@
-import { BLOCK_TINTS, COLORS, JUICE, BALL, PADDLE } from './config.js';
-import { clearCell } from './board.js';
+import { BLOCK_TINTS, COLORS, JUICE, BALL, PADDLE, LIFE_LOST } from './config.js';
+import { clearCell, setCell } from './board.js';
+import { startMusic } from './music.js';
 
 let audioContext = null;
 
@@ -15,6 +16,7 @@ export function unlockAudio() {
   if (ctx.state === 'suspended') {
     ctx.resume();
   }
+  startMusic();
 }
 
 export function playDestroyPing(step = 0) {
@@ -168,7 +170,9 @@ export function createEffects() {
     particles: [],
     ballTrail: [],
     shakeTimer: 0,
+    redFlashTimer: 0,
     paddleShake: { timer: 0, hitOffset: 0 },
+    lifeLost: null,
     destroyPingStep: 0,
   };
 }
@@ -179,7 +183,9 @@ export function resetEffects(effects) {
   effects.particles = [];
   effects.ballTrail = [];
   effects.shakeTimer = 0;
+  effects.redFlashTimer = 0;
   effects.paddleShake = { timer: 0, hitOffset: 0 };
+  effects.lifeLost = null;
   effects.destroyPingStep = 0;
 }
 
@@ -195,12 +201,12 @@ export function updateBallTrail(effects, ball) {
   }
 }
 
-export function queueBlockClear(effects, col, row, type) {
+export function queueBlockClear(effects, col, row, type, convertTo = null) {
   const key = `${col},${row}`;
   if (effects.clearingKeys.has(key)) return false;
 
   effects.clearingKeys.add(key);
-  effects.blockClears.push({ col, row, type, elapsed: 0 });
+  effects.blockClears.push({ col, row, type, elapsed: 0, convertTo });
   effects.shakeTimer = JUICE.SHAKE.DURATION_MS;
   return true;
 }
@@ -225,6 +231,52 @@ export function spawnImpactParticles(effects, x, y, kind, blockType = null) {
   }
 }
 
+export function triggerLifeLost(effects, previousLives, remainingLives) {
+  effects.lifeLost = {
+    elapsed: 0,
+    previousLives,
+    remainingLives,
+  };
+  effects.shakeTimer = LIFE_LOST.SHAKE_DURATION_MS;
+  effects.redFlashTimer = LIFE_LOST.RED_FLASH_MS;
+}
+
+export function updateLifeLostSequence(effects, dt) {
+  if (!effects.lifeLost) return 'idle';
+
+  const dtMs = dt * 1000;
+  effects.lifeLost.elapsed += dtMs;
+
+  if (effects.shakeTimer > 0) {
+    effects.shakeTimer = Math.max(0, effects.shakeTimer - dtMs);
+  }
+
+  if (effects.redFlashTimer > 0) {
+    effects.redFlashTimer = Math.max(0, effects.redFlashTimer - dtMs);
+  }
+
+  const totalDuration = LIFE_LOST.FREEZE_MS + LIFE_LOST.POPUP_MS;
+  if (effects.lifeLost.elapsed >= totalDuration) {
+    effects.lifeLost = null;
+    effects.redFlashTimer = 0;
+    return 'complete';
+  }
+
+  return 'active';
+}
+
+export function isLifeLostPopupVisible(effects) {
+  return (
+    effects.lifeLost !== null &&
+    effects.lifeLost.elapsed >= LIFE_LOST.FREEZE_MS
+  );
+}
+
+export function getRedFlashAlpha(redFlashTimer) {
+  if (redFlashTimer <= 0) return 0;
+  return 0.5 * (redFlashTimer / LIFE_LOST.RED_FLASH_MS);
+}
+
 export function triggerPaddleShake(effects, hitOffset) {
   effects.paddleShake = {
     timer: PADDLE.HIT_SHAKE.DURATION_MS,
@@ -242,7 +294,13 @@ export function triggerImpact(effects, impact) {
     effects.destroyPingStep = 0;
     triggerPaddleShake(effects, impact.hitOffset ?? 0);
   } else if (impact.kind === 'block') {
-    queueBlockClear(effects, impact.col, impact.row, impact.blockType);
+    queueBlockClear(
+      effects,
+      impact.col,
+      impact.row,
+      impact.blockType,
+      impact.convertTo ?? null,
+    );
   }
 }
 
@@ -271,7 +329,11 @@ export function updateEffects(effects, board, dt) {
   effects.blockClears = effects.blockClears.filter((clear) => {
     clear.elapsed += dtMs;
     if (clear.elapsed >= removeAt) {
-      clearCell(board, clear.col, clear.row);
+      if (clear.convertTo) {
+        setCell(board, clear.col, clear.row, clear.convertTo);
+      } else {
+        clearCell(board, clear.col, clear.row);
+      }
       effects.clearingKeys.delete(`${clear.col},${clear.row}`);
       playDestroyPing(effects.destroyPingStep);
       effects.destroyPingStep += 1;
@@ -305,18 +367,26 @@ export function getPaddleHitShake(paddleShake) {
   };
 }
 
-export function getShakeOffset(shakeTimer) {
+export function getActiveShakeAmplitude(effects) {
+  if (effects.lifeLost && effects.lifeLost.elapsed < LIFE_LOST.FREEZE_MS) {
+    return LIFE_LOST.SHAKE_AMPLITUDE;
+  }
+  return JUICE.SHAKE.AMPLITUDE;
+}
+
+export function getShakeOffset(shakeTimer, options = {}) {
   if (shakeTimer <= 0) {
     return { x: 0, y: 0 };
   }
 
-  const { DURATION_MS, AMPLITUDE } = JUICE.SHAKE;
-  const progress = 1 - shakeTimer / DURATION_MS;
-  const amplitude = AMPLITUDE * (1 - progress);
-  const t = DURATION_MS - shakeTimer;
+  const amplitude = options.amplitude ?? JUICE.SHAKE.AMPLITUDE;
+  const durationMs = options.durationMs ?? JUICE.SHAKE.DURATION_MS;
+  const progress = 1 - shakeTimer / durationMs;
+  const scaledAmplitude = amplitude * (1 - progress);
+  const t = durationMs - shakeTimer;
 
   return {
-    x: Math.sin(t * 0.085) * amplitude,
-    y: Math.cos(t * 0.11) * amplitude * 0.55,
+    x: Math.sin(t * 0.085) * scaledAmplitude,
+    y: Math.cos(t * 0.11) * scaledAmplitude * 0.55,
   };
 }

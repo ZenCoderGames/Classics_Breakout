@@ -8,16 +8,24 @@ import {
   COLORS,
   GAME_STATE,
   GRID,
+  JUICE,
+  LIFE_LOST,
   OVERLAY_TEXT,
   PADDLE,
   PLAYFIELD_BOTTOM,
-  PLAYFIELD_LEFT,
-  PLAYFIELD_WIDTH,
   SPRITE_NAMES,
   TOP_WALL_ROWS,
   WALL_PX,
 } from './config.js';
-import { getShakeOffset, getPaddleHitShake, isClearFlashOn } from './effects.js';
+import { getLifeLostAnimState, drawLivesCircles } from './livesDisplay.js';
+import {
+  getShakeOffset,
+  getActiveShakeAmplitude,
+  getPaddleHitShake,
+  getRedFlashAlpha,
+  isLifeLostPopupVisible,
+  isClearFlashOn,
+} from './effects.js';
 
 let sceneCanvas = null;
 let sceneCtx = null;
@@ -206,18 +214,6 @@ function drawBall(ctx, sprites, ball) {
   ctx.drawImage(sprite, ball.x - half, ball.y - half, BALL.SIZE, BALL.SIZE);
 }
 
-function drawLives(ctx, lives) {
-  ctx.fillStyle = COLORS.TEXT;
-  ctx.font = '16px monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(
-    `Lives: ${lives}`,
-    PLAYFIELD_LEFT + PLAYFIELD_WIDTH / 2,
-    PLAYFIELD_BOTTOM + WALL_PX / 2,
-  );
-}
-
 function drawOverlay(ctx, state) {
   const message = OVERLAY_TEXT[state];
   if (!message) return;
@@ -232,12 +228,45 @@ function drawOverlay(ctx, state) {
   ctx.fillText(message, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 }
 
-export function render(displayCtx, sprites, board, paddle, ball, state, effects, lives) {
+function drawLifeLostPopup(ctx, lifeLost) {
+  const cx = CANVAS_WIDTH / 2;
+  const cy = CANVAS_HEIGHT / 2;
+  const animState = getLifeLostAnimState(lifeLost);
+
+  ctx.fillStyle = COLORS.OVERLAY_BG;
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  ctx.fillStyle = COLORS.TEXT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText('Life Lost!', cx, cy - 56);
+
+  drawLivesCircles(ctx, cx, cy, animState.filledCount, animState, {
+    radius: 14,
+    gap: 18,
+  });
+
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#8e8e9e';
+  ctx.fillText('Lives Remaining', cx, cy + 52);
+}
+
+export function render(displayCtx, sprites, board, paddle, ball, state, effects) {
   ensureRenderBuffers();
   const ctx = sceneCtx;
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  const shake = getShakeOffset(effects.shakeTimer);
+  const shakeDuration =
+    effects.lifeLost && effects.lifeLost.elapsed < LIFE_LOST.FREEZE_MS
+      ? LIFE_LOST.SHAKE_DURATION_MS
+      : JUICE.SHAKE.DURATION_MS;
+
+  const shake = getShakeOffset(effects.shakeTimer, {
+    amplitude: getActiveShakeAmplitude(effects),
+    durationMs: shakeDuration,
+  });
   ctx.save();
   ctx.translate(shake.x, shake.y);
 
@@ -253,9 +282,16 @@ export function render(displayCtx, sprites, board, paddle, ball, state, effects,
   ctx.restore();
 
   applyBloom(displayCtx);
-  drawLives(displayCtx, lives);
 
-  if (state !== GAME_STATE.PLAYING) {
+  const redAlpha = getRedFlashAlpha(effects.redFlashTimer);
+  if (redAlpha > 0) {
+    displayCtx.fillStyle = `rgba(220, 40, 40, ${redAlpha})`;
+    displayCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
+
+  if (state === GAME_STATE.LIFE_LOST && isLifeLostPopupVisible(effects)) {
+    drawLifeLostPopup(displayCtx, effects.lifeLost);
+  } else if (state !== GAME_STATE.PLAYING) {
     drawOverlay(displayCtx, state);
   }
 }

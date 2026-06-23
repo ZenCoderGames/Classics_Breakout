@@ -15,6 +15,8 @@ export const BLOCK_ROW_COLORS = [
   'BlueBlock',
 ];
 
+export const WHITE_BLOCK = 'WhiteBlock';
+
 export const CANVAS_WIDTH = GRID.COLS * CELL_PX + WALL_PX * 2;
 export const CANVAS_HEIGHT = GRID.ROWS * CELL_PX + WALL_PX;
 
@@ -26,6 +28,11 @@ export const PLAYFIELD_RIGHT = PLAYFIELD_LEFT + PLAYFIELD_WIDTH;
 export const PLAYFIELD_BOTTOM = PLAYFIELD_TOP + PLAYFIELD_HEIGHT;
 
 export const ASSET_PATH = 'art/';
+export const AUDIO_PATH = 'audio/';
+export const MUSIC = {
+  FILE: 'music.mp3',
+  VOLUME: 0.05,
+};
 export const SPRITE_NAMES = [
   'EmptyBlock',
   'Walls',
@@ -105,6 +112,11 @@ export const BLOCK_TINTS = {
   WhiteBlock: '#ccc',
 };
 
+export const UI = {
+  TITLE: 'Breakout',
+  SUBTITLE: 'A Classic',
+};
+
 export const COLORS = {
   OVERLAY_BG: 'rgba(0, 0, 0, 0.55)',
   TEXT: '#ffffff',
@@ -117,9 +129,30 @@ export const LIVES = {
   START: 3,
 };
 
+export const SCORE = {
+  BY_BLOCK_TYPE: {
+    RedBlock: 50,
+    BrownBlock: 40,
+    YellowBlock: 30,
+    GreenBlock: 20,
+    BlueBlock: 10,
+  },
+};
+
+export const LIFE_LOST = {
+  FREEZE_MS: 450,
+  RED_FLASH_MS: 450,
+  SHAKE_DURATION_MS: 450,
+  SHAKE_AMPLITUDE: 9,
+  POPUP_HOLD_MS: 450,
+  POPUP_ANIM_MS: 500,
+  POPUP_MS: 1400,
+};
+
 export const GAME_STATE = {
   READY: 'READY',
   PLAYING: 'PLAYING',
+  LIFE_LOST: 'LIFE_LOST',
   VICTORY: 'VICTORY',
   GAME_OVER: 'GAME_OVER',
 };

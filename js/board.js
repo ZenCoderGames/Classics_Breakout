@@ -1,4 +1,4 @@
-import { BLOCK_ROW_COLORS, BLOCK_ROWS, BLOCK_START_ROW, GRID } from './config.js';
+import { BLOCK_ROW_COLORS, BLOCK_ROWS, BLOCK_START_ROW, GRID, WHITE_BLOCK } from './config.js';
 
 export function createBoard() {
   return {
@@ -17,12 +17,24 @@ export function getCell(board, x, y) {
   return board.cells[y][x];
 }
 
+export function getRowBlockType(row) {
+  return BLOCK_ROW_COLORS[row - BLOCK_START_ROW];
+}
+
+export function setCell(board, col, row, type) {
+  if (inBounds(col, row)) {
+    board.cells[row][col] = type;
+  }
+}
+
 export function placeBlockRows(board) {
   for (let row = BLOCK_START_ROW; row < BLOCK_START_ROW + BLOCK_ROWS; row += 1) {
     const type = BLOCK_ROW_COLORS[row - BLOCK_START_ROW];
     for (let col = 0; col < GRID.COLS; col += 1) {
       board.cells[row][col] = type;
     }
+    const whiteCol = Math.floor(Math.random() * GRID.COLS);
+    board.cells[row][whiteCol] = WHITE_BLOCK;
   }
 }
 

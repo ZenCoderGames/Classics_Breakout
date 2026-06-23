@@ -1,4 +1,5 @@
-import { BALL, BLOCK_SPEED_BY_TYPE, CELL_PX, GRID, PLAYFIELD_BOTTOM, PLAYFIELD_LEFT, PLAYFIELD_RIGHT, PLAYFIELD_TOP, TOP_WALL_ROWS } from './config.js';
+import { BALL, BLOCK_SPEED_BY_TYPE, CELL_PX, GRID, PLAYFIELD_BOTTOM, PLAYFIELD_LEFT, PLAYFIELD_RIGHT, PLAYFIELD_TOP, TOP_WALL_ROWS, WHITE_BLOCK } from './config.js';
+import { getRowBlockType } from './board.js';
 import { normalizeBallSpeed } from './entities.js';
 import { boardToCanvas } from './renderer.js';
 
@@ -90,8 +91,15 @@ function resolveBlockCollision(ball, block) {
     ball.y = dy > 0 ? block.y + CELL_PX + ball.r : block.y - ball.r;
   }
 
-  ball.speed = BLOCK_SPEED_BY_TYPE[block.blockType] ?? BALL.SPEED;
+  ball.speed = BLOCK_SPEED_BY_TYPE[getBlockSpeedType(block)] ?? BALL.SPEED;
   normalizeBallSpeed(ball);
+}
+
+function getBlockSpeedType(block) {
+  if (block.blockType === WHITE_BLOCK) {
+    return getRowBlockType(block.row);
+  }
+  return block.blockType;
 }
 
 export function updateCollisions(ball, paddle, board, clearingKeys) {
@@ -107,14 +115,18 @@ export function updateCollisions(ball, paddle, board, clearingKeys) {
   if (hits.length > 0) {
     const block = hits[0];
     resolveBlockCollision(ball, block);
-    impacts.push({
+    const impact = {
       x: ball.x,
       y: ball.y,
       kind: 'block',
       col: block.col,
       row: block.row,
       blockType: block.blockType,
-    });
+    };
+    if (block.blockType === WHITE_BLOCK) {
+      impact.convertTo = getRowBlockType(block.row);
+    }
+    impacts.push(impact);
     return { impacts, fell: false };
   }
 

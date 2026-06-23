@@ -1,14 +1,18 @@
 import { createBoard, remainingBlocks, resetBoard } from './board.js';
 import { updateCollisions } from './collision.js';
-import { GAME_STATE, LIVES, PLAYFIELD_LEFT, PLAYFIELD_WIDTH } from './config.js';
+import { GAME_STATE, LIVES, PLAYFIELD_LEFT, PLAYFIELD_WIDTH, SCORE } from './config.js';
 import {
   createEffects,
   resetEffects,
   triggerImpact,
+  triggerLifeLost,
   updateBallTrail,
+  updateLifeLostSequence,
+  isLifeLostPopupVisible,
   unlockAudio,
   updateEffects,
 } from './effects.js';
+import { getLifeLostAnimState } from './livesDisplay.js';
 import {
   createBall,
   createPaddle,
@@ -20,7 +24,7 @@ import {
 } from './entities.js';
 import { render } from './renderer.js';
 
-export function createGame(canvas, sprites, input) {
+export function createGame(canvas, sprites, input, hud) {
   const ctx = canvas.getContext('2d');
   const board = createBoard();
   resetBoard(board);
@@ -30,21 +34,44 @@ export function createGame(canvas, sprites, input) {
   const effects = createEffects();
   let state = GAME_STATE.READY;
   let lives = LIVES.START;
+  let score = 0;
   let lastTime = 0;
+
+  function updateHud() {
+    hud.update(score, lives);
+  }
 
   function restart() {
     resetBoard(board);
     resetEffects(effects);
     lives = LIVES.START;
+    score = 0;
     paddle.x = PLAYFIELD_LEFT + (PLAYFIELD_WIDTH - paddle.w) / 2;
     resetBallOnPaddle(ball, paddle);
     state = GAME_STATE.READY;
+    updateHud();
   }
 
   function respawnBall() {
     resetEffects(effects);
     resetBallOnPaddle(ball, paddle);
     state = GAME_STATE.READY;
+  }
+
+  function finishLifeLost() {
+    updateHud();
+    if (lives > 0) {
+      respawnBall();
+    } else {
+      state = GAME_STATE.GAME_OVER;
+    }
+  }
+
+  function beginLifeLost() {
+    const previousLives = lives;
+    lives -= 1;
+    triggerLifeLost(effects, previousLives, lives);
+    state = GAME_STATE.LIFE_LOST;
   }
 
   function tryLaunch() {
@@ -55,6 +82,17 @@ export function createGame(canvas, sprites, input) {
   }
 
   function update(dt) {
+    if (state === GAME_STATE.LIFE_LOST) {
+      const lifeLostStatus = updateLifeLostSequence(effects, dt);
+      if (isLifeLostPopupVisible(effects)) {
+        hud.updateLivesAnim(getLifeLostAnimState(effects.lifeLost));
+      }
+      if (lifeLostStatus === 'complete') {
+        finishLifeLost();
+      }
+      return;
+    }
+
     updateEffects(effects, board, dt);
 
     if (state === GAME_STATE.VICTORY || state === GAME_STATE.GAME_OVER) {
@@ -95,25 +133,25 @@ export function createGame(canvas, sprites, input) {
 
     for (const impact of result.impacts) {
       triggerImpact(effects, impact);
+      if (impact.kind === 'block' && !impact.convertTo) {
+        score += SCORE.BY_BLOCK_TYPE[impact.blockType] ?? 0;
+        updateHud();
+      }
     }
 
     if (result.fell) {
-      lives -= 1;
-      if (lives > 0) {
-        respawnBall();
-      } else {
-        state = GAME_STATE.GAME_OVER;
-      }
+      beginLifeLost();
       return;
     }
 
     if (remainingBlocks(board) === 0 && effects.blockClears.length === 0) {
       state = GAME_STATE.VICTORY;
+      updateHud();
     }
   }
 
   function draw() {
-    render(ctx, sprites, board, paddle, ball, state, effects, lives);
+    render(ctx, sprites, board, paddle, ball, state, effects);
   }
 
   function frame(time) {
@@ -126,6 +164,7 @@ export function createGame(canvas, sprites, input) {
 
   return {
     start() {
+      updateHud();
       requestAnimationFrame(frame);
     },
   };
