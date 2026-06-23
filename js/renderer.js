@@ -14,7 +14,6 @@ import {
   PADDLE,
   PLAYFIELD_BOTTOM,
   SPRITE_NAMES,
-  TOP_WALL_ROWS,
   WALL_PX,
 } from './config.js';
 import { getLifeLostAnimState, drawLivesCircles } from './livesDisplay.js';
@@ -83,16 +82,6 @@ function boardToCanvas(col, row) {
     x: WALL_PX + col * CELL_PX,
     y: row * CELL_PX,
   };
-}
-
-function drawEmptyGrid(ctx, sprites) {
-  const empty = sprites.EmptyBlock;
-  for (let row = TOP_WALL_ROWS; row < GRID.ROWS; row += 1) {
-    for (let col = 0; col < GRID.COLS; col += 1) {
-      const { x, y } = boardToCanvas(col, row);
-      ctx.drawImage(empty, x, y, CELL_PX, CELL_PX);
-    }
-  }
 }
 
 function drawTopWallRow(ctx, sprites) {
@@ -270,7 +259,6 @@ export function render(displayCtx, sprites, board, paddle, ball, state, effects)
   ctx.save();
   ctx.translate(shake.x, shake.y);
 
-  drawEmptyGrid(ctx, sprites);
   drawTopWallRow(ctx, sprites);
   drawWalls(ctx, sprites);
   drawBlocks(ctx, board, sprites, effects);

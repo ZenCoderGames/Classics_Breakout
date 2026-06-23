@@ -1,10 +1,10 @@
-export const GRID = { COLS: 16, ROWS: 18 };
+export const GRID = { COLS: 16, ROWS: 19 };
 
 export const CELL_PX = 32;
 export const WALL_PX = 32;
 
 export const BLOCK_ROWS = 5;
-export const TOP_WALL_ROWS = 1;
+export const TOP_WALL_ROWS = 2;
 export const BLOCK_GAP_ROWS = 1;
 export const BLOCK_START_ROW = TOP_WALL_ROWS + BLOCK_GAP_ROWS;
 export const BLOCK_ROW_COLORS = [
@@ -34,7 +34,6 @@ export const MUSIC = {
   VOLUME: 0.05,
 };
 export const SPRITE_NAMES = [
-  'EmptyBlock',
   'Walls',
   'Ball',
   'Paddle_Left',
