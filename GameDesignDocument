@@ -1,0 +1,20 @@
+Breakout
+
+This is a game about breaking bricks until no bricks remain in the gameplay space.
+Bricks = a series of blocks (usually 3 in length)
+Blocks = a logical and visual entity in a cell
+
+The gameplay space is defined as a grid of X,Y where X>Y.
+At the top third of screen are a series of blocks laid out from to cover an entire line.
+There should be Z lines where Z = 5.
+The grid is surrounded by Walls.
+
+There is also a Ball and a Paddle that the player interacts with.
+The Paddle can move from left to right and reflect the Ball when it lands on it.
+The Ball starts with downward velocity. It will be reflected when it hits a Wall, Brick or the Paddle in the reflected direction.
+
+Make sure all of the constants are defined in its own file.
+
+Victory = All blocks are removed.
+
+See GameDesignReference.jpeg for what this should look like.
