@@ -1,4 +1,4 @@
-import { INPUT_KEYS, INPUT_MODE } from './config.js';
+import { DEBUG, INPUT_KEYS, INPUT_MODE } from './config.js';
 
 const ARROW_LEFT = 'ArrowLeft';
 const ARROW_RIGHT = 'ArrowRight';
@@ -28,6 +28,9 @@ export function createInput(canvas) {
   let mode = null;
   let pointerX = null;
   let clickLaunch = false;
+  let touchLeft = false;
+  let touchRight = false;
+  let touchLaunch = false;
 
   function setPointerX(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
@@ -51,11 +54,11 @@ export function createInput(canvas) {
   }
 
   function isLeftPressed() {
-    return INPUT_KEYS.LEFT.some((k) => keys.has(k)) || keys.has(ARROW_LEFT);
+    return touchLeft || INPUT_KEYS.LEFT.some((k) => keys.has(k)) || keys.has(ARROW_LEFT);
   }
 
   function isRightPressed() {
-    return INPUT_KEYS.RIGHT.some((k) => keys.has(k)) || keys.has(ARROW_RIGHT);
+    return touchRight || INPUT_KEYS.RIGHT.some((k) => keys.has(k)) || keys.has(ARROW_RIGHT);
   }
 
   function getPaddleDirection() {
@@ -69,6 +72,10 @@ export function createInput(canvas) {
   }
 
   function consumeLaunch() {
+    if (touchLaunch) {
+      touchLaunch = false;
+      return true;
+    }
     const pressed = INPUT_KEYS.LAUNCH.some((k) => keys.has(k));
     if (pressed) {
       INPUT_KEYS.LAUNCH.forEach((k) => keys.delete(k));
@@ -111,6 +118,22 @@ export function createInput(canvas) {
     return pointerX;
   }
 
+  function setInput(name, down) {
+    if (name === 'left') {
+      touchLeft = down;
+      if (down) {
+        mode = INPUT_MODE.KEYBOARD;
+        pointerX = null;
+      }
+    } else if (name === 'right') {
+      touchRight = down;
+      if (down) {
+        mode = INPUT_MODE.KEYBOARD;
+        pointerX = null;
+      }
+    }
+  }
+
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
   canvas.addEventListener('pointerdown', onPointerDown);
@@ -122,6 +145,7 @@ export function createInput(canvas) {
     consumeRestart,
     consumeClickLaunch,
     getPointerX,
+    setInput,
     destroy() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
@@ -129,4 +153,45 @@ export function createInput(canvas) {
       canvas.removeEventListener('pointermove', onPointerMove);
     },
   };
+}
+
+export function bindMobileControls(input, { onPointerDown } = {}) {
+  const controls = document.getElementById('mobile-controls');
+  if (!controls) return;
+
+  const setPressed = (btn, pressed) => {
+    btn.classList.toggle('is-pressed', pressed);
+  };
+
+  const onDown = (btn, name) => {
+    input.setInput(name, true);
+    setPressed(btn, true);
+    onPointerDown?.();
+  };
+
+  const onUp = (btn, name) => {
+    input.setInput(name, false);
+    setPressed(btn, false);
+  };
+
+  for (const btn of controls.querySelectorAll('[data-input]')) {
+    const name = btn.dataset.input;
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      btn.setPointerCapture(e.pointerId);
+      onDown(btn, name);
+    });
+    const release = () => onUp(btn, name);
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+    btn.addEventListener('pointerleave', (e) => {
+      if (!btn.hasPointerCapture(e.pointerId)) release();
+    });
+  }
+}
+
+export function applyMobileControlsDebug() {
+  if (DEBUG.showMobileControls) {
+    document.body.classList.add('debug-mobile-controls');
+  }
 }

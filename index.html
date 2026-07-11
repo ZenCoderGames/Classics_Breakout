@@ -151,6 +151,81 @@
       color: #ffffff;
       text-decoration: underline;
     }
+
+    .mobile-controls {
+      display: none;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #2a2a40;
+      border-radius: 12px;
+      background: #1e1e2f;
+    }
+
+    .mobile-controls-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .control-btn {
+      min-height: 52px;
+      border: 1px solid #2a2a40;
+      border-radius: 12px;
+      background: #1e1e2f;
+      color: #ffffff;
+      font: inherit;
+      font-size: 1.25rem;
+      font-weight: 900;
+      cursor: pointer;
+      touch-action: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.08s, filter 0.08s;
+    }
+
+    .control-btn:active,
+    .control-btn.is-pressed {
+      transform: scale(0.96);
+      filter: brightness(1.15);
+    }
+
+    body.debug-mobile-controls .mobile-controls {
+      display: grid;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 12px;
+        align-items: flex-start;
+      }
+
+      #shell {
+        width: 100%;
+      }
+
+      #hud {
+        flex-wrap: wrap;
+      }
+
+      #title-panel {
+        order: -1;
+        flex: 1 1 100%;
+      }
+
+      #game-panel {
+        padding: 8px;
+      }
+
+      #game {
+        width: 100%;
+        height: auto;
+      }
+
+      .mobile-controls {
+        display: grid;
+      }
+    }
   </style>
 </head>
 <body>
@@ -171,6 +246,12 @@
     </div>
     <div id="game-panel">
       <canvas id="game" tabindex="0"></canvas>
+    </div>
+    <div id="mobile-controls" class="mobile-controls" aria-label="Touch controls">
+      <div class="mobile-controls-row">
+        <button type="button" class="control-btn" data-input="left" aria-label="Left">←</button>
+        <button type="button" class="control-btn" data-input="right" aria-label="Right">→</button>
+      </div>
     </div>
     <p id="music-credit">
       <a href="https://pixabay.com/music/modern-classical-puzzle-masters-rohit-valiant-402154/" target="_blank" rel="noopener noreferrer">Music</a>

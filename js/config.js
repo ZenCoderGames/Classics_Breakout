@@ -168,6 +168,10 @@ export const INPUT_KEYS = {
   RESTART: ['r', 'R'],
 };
 
+export const DEBUG = {
+  showMobileControls: true,
+};
+
 export const OVERLAY_TEXT = {
   READY: 'Press Space or Click to Launch',
   VICTORY: 'You Win! Press R to Restart',

@@ -1,6 +1,7 @@
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from './config.js';
 import { createGame } from './game.js';
-import { createInput } from './input.js';
+import { applyMobileControlsDebug, bindMobileControls, createInput } from './input.js';
+import { unlockAudio } from './effects.js';
 import { loadMusic } from './music.js';
 import { loadSprites } from './renderer.js';
 import { createHud } from './ui.js';
@@ -11,6 +12,8 @@ canvas.height = CANVAS_HEIGHT;
 canvas.focus();
 
 const input = createInput(canvas);
+bindMobileControls(input, { onPointerDown: unlockAudio });
+applyMobileControlsDebug();
 const hud = createHud({
   scoreEl: document.getElementById('score'),
   livesEl: document.getElementById('lives'),
