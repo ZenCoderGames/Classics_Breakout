@@ -169,7 +169,7 @@ export const INPUT_KEYS = {
 };
 
 export const DEBUG = {
-  showMobileControls: true,
+  showMobileControls: false,
 };
 
 export const OVERLAY_TEXT = {
